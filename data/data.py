@@ -17,7 +17,7 @@ def LoadData(DATASET_NAME):
         ; dataset object
     """
     # handling for MNIST or CIFAR Superpixels
-    if DATASET_NAME == 'MNIST' or DATASET_NAME == 'CIFAR10':
+    if DATASET_NAME == 'MNIST' or DATASET_NAME == 'CIFAR10' or 'CP':
         return SuperPixDataset(DATASET_NAME)
     
     # handling for (ZINC) molecule dataset

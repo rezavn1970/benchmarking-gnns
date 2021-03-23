@@ -111,25 +111,7 @@ class SuperPixDGL(torch.utils.data.Dataset):
             print("coord type before reshape", type(coord))
             print("mean type before reshape", type(mean_px))
             self.graph_labels = torch.LongTensor(self.labels)
-        elif dataset == 'melanoma':
 
-            with open(os.path.join(data_dir, 'melanoma_%s.pkl' % split), 'rb') as f:
-                tmp = pickle.load(f)
-                self.labels, self.sp_data = zip(*tmp)
-
-            for index, sample in enumerate(self.sp_data):
-                mean_px, coord = sample[:2]
-
-            #                 print("this is mean_px", mean_px)
-            #                 print("this is coord", coord)
-            #                 print("type of mean_px", type(mean_px))
-            #                 print("type of coord", type(coord))
-            #                 for i in range(np.shape(self.sp_data)[0]):
-            #                     print("this is the shape of sp_data",np.shape(self.sp_data[i][2]))
-            print("coord type before reshape", type(coord))
-            print("mean type before reshape", type(mean_px))
-
-            self.graph_labels = torch.LongTensor(self.labels)
 
         self.use_mean_px = use_mean_px
         self.use_coord = use_coord
@@ -252,18 +234,24 @@ class SuperPixDatasetDGL(torch.utils.data.Dataset):
         all_types = []
 
         ##loading Train data
-        count = 0
-        for typ in ['benign','malignant']:
-            with open('C:/Users/rezav/PycharmProjects/benchmarking-gnns/data/superpixels/{}_train_superpixels.pkl'.format(typ), 'rb') as f:
+        for typ in range(1,4):
+            with open('C:/Users/rezav/PycharmProjects/benchmarking-gnns/data/superpixels/type{}_in_co_sp.pkl'.format(typ), 'rb') as f:
                 # load the data as binary data stream
                 each_type = pickle.load(f)
                 #         print(type(each_type))
-                each_label = np.full((np.shape(each_type)[0], ), count, dtype=int) 
-            
+                each_label = np.full((np.shape(each_type)[0], ), typ-1, dtype=int) ##*** typ -1 because  pytorch needs us to index the classes from 0
+
+            #the following comments are commented cause first we were taking 20% of the train data for test but now we use the actual test data
+            #             num_test = int(0.2 * (np.shape(each_type)[0]))
+            #             print("num_test",num_test)
+            #     print("each type",each_type[:num_test])
+            #             test_data = each_type[:num_test]
+            #     print("this is test_data",test_data)
+            #             test_label = each_label[:num_test]
             train_data = each_type#each_type[num_test:]
             train_label = each_label#each_label[num_test:]
 
-            if count == 0:
+            if typ == 1:
                 #                 all_test_data = test_data
                 #                 all_test_label = test_label
 
@@ -275,9 +263,7 @@ class SuperPixDatasetDGL(torch.utils.data.Dataset):
 
                 all_train_data = np.concatenate((all_train_data, train_data), axis = 0)
                 all_train_label = np.concatenate((all_train_label, train_label), axis = 0)
-                
-            count = count + 1
-            
+
         #         temp_test = list(zip(all_test_label, all_test_data))
         #         print("this is temp shape",np.shape(temp_test))
 
@@ -285,23 +271,22 @@ class SuperPixDatasetDGL(torch.utils.data.Dataset):
         for i in range(50):
             random.shuffle(temp_train)
 
-        with open('C:/Users/rezav/PycharmProjects/benchmarking-gnns/data/superpixels/melanoma_train.pkl', 'wb') as filehandle:
+        with open('C:/Users/rezav/PycharmProjects/benchmarking-gnns/data/superpixels/CP_train.pkl', 'wb') as filehandle:
             # store the data as binary data stream
             pickle.dump(temp_train, filehandle)
 
         ##loading Test Data
-        count = 0
-        for typ in ['benign','malignant']:
-            with open('C:/Users/rezav/PycharmProjects/benchmarking-gnns/data/superpixels/{}_test_superpixels.pkl'.format(typ), 'rb') as f:
-                  # load the data as binary data stream
+        for typ in range(1,4):
+            with open('C:/Users/rezav/PycharmProjects/benchmarking-gnns/data/superpixels/test_type{}_in_co_sp.pkl'.format(typ), 'rb') as f:
+                # load the data as binary data stream
                 t_type = pickle.load(f)
                 #         print(type(each_type))
-                t_label = np.full((np.shape(t_type)[0], ), count, dtype=int)
+                t_label = np.full((np.shape(t_type)[0], ), typ-1, dtype=int)
 
             test_data = t_type#each_type[num_test:]
             test_label = t_label#each_label[num_test:]
 
-            if count == 0:
+            if typ == 1:
                 all_test_data = test_data
                 all_test_label = test_label
 
@@ -309,12 +294,11 @@ class SuperPixDatasetDGL(torch.utils.data.Dataset):
                 all_test_data = np.concatenate((all_test_data, test_data), axis = 0)
                 all_test_label = np.concatenate((all_test_label, test_label), axis = 0)
 
-            count = count + 1
 
         temp_test = list(zip(all_test_label, all_test_data))
         #         print("this is temp shape",np.shape(temp_test))
 
-        with open('C:/Users/rezav/PycharmProjects/benchmarking-gnns/data/superpixels/melanoma_test.pkl', 'wb') as filehandle:
+        with open('C:/Users/rezav/PycharmProjects/benchmarking-gnns/data/superpixels/CP_test.pkl', 'wb') as filehandle:
             # store the data as binary data stream
             pickle.dump(temp_test, filehandle)
 

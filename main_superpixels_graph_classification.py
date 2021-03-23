@@ -40,8 +40,10 @@ class DotDict(dict):
 """
     IMPORTING CUSTOM MODULES/METHODS
 """
+
 from nets.superpixels_graph_classification.load_net import gnn_model # import all GNNS
 from data.data import LoadData # import dataset
+print("done!")
 
 
 
@@ -125,6 +127,8 @@ def train_val_pipeline(MODEL_NAME, dataset, params, net_params, dirs):
     print("Number of Classes: ", net_params['n_classes'])
 
     model = gnn_model(MODEL_NAME, net_params)
+    if net_params['warm_start_flag'] == True:
+        model.load_state_dict(torch.load(net_params['warm_start_path']))
     model = model.to(device)
 
     optimizer = optim.Adam(model.parameters(), lr=params['init_lr'], weight_decay=params['weight_decay'])
@@ -150,7 +154,8 @@ def train_val_pipeline(MODEL_NAME, dataset, params, net_params, dirs):
     else:
         # import train functions for all other GCNs
         from train.train_superpixels_graph_classification import train_epoch_sparse as train_epoch, evaluate_network_sparse as evaluate_network
-
+        
+        
         train_loader = DataLoader(trainset, batch_size=params['batch_size'], shuffle=True, drop_last=drop_last, collate_fn=dataset.collate)
         val_loader = DataLoader(valset, batch_size=params['batch_size'], shuffle=False, drop_last=drop_last, collate_fn=dataset.collate)
         test_loader = DataLoader(testset, batch_size=params['batch_size'], shuffle=False, drop_last=drop_last, collate_fn=dataset.collate)
@@ -197,7 +202,8 @@ def train_val_pipeline(MODEL_NAME, dataset, params, net_params, dirs):
                 if not os.path.exists(ckpt_dir):
                     os.makedirs(ckpt_dir)
                 torch.save(model.state_dict(), '{}.pkl'.format(ckpt_dir + "/epoch_" + str(epoch)))
-
+                
+                
                 files = glob.glob(ckpt_dir + '/*.pkl')
                 for file in files:
                     epoch_nb = file.split('_')[-1]
@@ -206,16 +212,13 @@ def train_val_pipeline(MODEL_NAME, dataset, params, net_params, dirs):
                         os.remove(file)
 
                 scheduler.step(epoch_val_loss)
+                
+                ##ME: I am commenting the following breaks so the model can go all the way to the end
 
                 if optimizer.param_groups[0]['lr'] < params['min_lr']:
                     print("\n!! LR EQUAL TO MIN LR SET.")
-                    break
+                    optimizer.param_groups[0]['lr'] = params['min_lr']
                     
-                # Stop training after params['max_time'] hours
-                if time.time()-t0 > params['max_time']*3600:
-                    print('-' * 89)
-                    print("Max_time for training elapsed {:.2f} hours, so stopping".format(params['max_time']))
-                    break
     
     except KeyboardInterrupt:
         print('-' * 89)
@@ -240,7 +243,16 @@ def train_val_pipeline(MODEL_NAME, dataset, params, net_params, dirs):
     Convergence Time (Epochs): {:.4f}\nTotal Time Taken: {:.4f} hrs\nAverage Time Per Epoch: {:.4f} s\n\n\n"""\
           .format(DATASET_NAME, MODEL_NAME, params, net_params, model, net_params['total_param'],
                   np.mean(np.array(test_acc))*100, np.mean(np.array(train_acc))*100, epoch, (time.time()-t0)/3600, np.mean(per_epoch_time)))
+        
+        
+        
+    return model, test_loader
                
+
+
+
+
+from train.train_superpixels_graph_classification import evaluate_network_final
 
 
 
@@ -384,7 +396,7 @@ def main():
     if args.self_loop is not None:
         net_params['self_loop'] = True if args.self_loop=='True' else False
         
-    # Superpixels
+    # Superpixels 
     net_params['in_dim'] = dataset.train[0][0].ndata['feat'][0].size(0)
     net_params['in_dim_edge'] = dataset.train[0][0].edata['feat'][0].size(0)
     num_classes = len(np.unique(np.array(dataset.train[:][1])))
@@ -418,9 +430,11 @@ def main():
         os.makedirs(out_dir + 'configs')
 
     net_params['total_param'] = view_model_param(MODEL_NAME, net_params)
-    train_val_pipeline(MODEL_NAME, dataset, params, net_params, dirs)
-
-    
+    trained_model,test_loader = train_val_pipeline(MODEL_NAME, dataset, params, net_params, dirs)
+    #Me
+    from train.train_superpixels_graph_classification import evaluate_network_final
+    epoch_test_loss, epoch_test_acc, final_prediction, scores = evaluate_network_final(trained_model, device, test_loader)
+    print("final predictions",final_prediction)
     
     
 main()    
@@ -428,12 +442,40 @@ main()
 
 
 
+with open('C:/Users/rezav/PycharmProjects/benchmarking-gnns/out/superpixels_graph_classification/checkpoints/GatedGCN_CP_GPU-1_13h12m53s_on_Feb_28_2021/RUN_/epoch_294.pkl', 'rb') as f:
+    tmp = pickle.load(f)
+    print("This is tmp",tmp)
 
 
 
 
+PATH = 'C:/Users/rezav/PycharmProjects/benchmarking-gnns/out/superpixels_graph_classification/checkpoints/GatedGCN_CP_GPU-1_13h12m53s_on_Feb_28_2021/RUN_/epoch_294.pkl'
 
 
+
+
+model = gnn_model(MODEL_NAME, net_params)
+model.load_state_dict(torch.load(PATH))
+model.eval()
+
+
+
+
+test_loader = DataLoader(testset, batch_size=5, shuffle=False, drop_last=False, collate_fn=dataset.collate)
+epoch_test_loss, epoch_test_acc, final_prediction, scores, final_labels = evaluate_network_final(model, device, test_loader)
+
+
+
+
+print("final predictions",len(final_labels))
+
+
+
+
+from sklearn.metrics import confusion_matrix
+
+results = confusion_matrix(final_labels, final_prediction)##(expected, predicted)
+print("confusion matrix ",results)
 
 
 

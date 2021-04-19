@@ -6,12 +6,19 @@
 from nets.superpixels_graph_classification.gated_gcn_net import GatedGCNNet
 from nets.superpixels_graph_classification.gcn_net import GCNNet
 from nets.superpixels_graph_classification.gat_net import GATNet
+from nets.superpixels_graph_classification.gat_resnet_net import GATResNet
+
 from nets.superpixels_graph_classification.graphsage_net import GraphSageNet
 from nets.superpixels_graph_classification.gin_net import GINNet
 from nets.superpixels_graph_classification.mo_net import MoNet as MoNet_
 from nets.superpixels_graph_classification.mlp_net import MLPNet
 from nets.superpixels_graph_classification.ring_gnn_net import RingGNNNet
 from nets.superpixels_graph_classification.three_wl_gnn_net import ThreeWLGNNNet
+from nets.superpixels_graph_classification.ChebyGIN_net import ChebyGINNet
+
+
+def ChebyGIN(net_params):
+    return ChebyGINNet(net_params)
 
 def GatedGCN(net_params):
     return GatedGCNNet(net_params)
@@ -21,6 +28,9 @@ def GCN(net_params):
 
 def GAT(net_params):
     return GATNet(net_params)
+
+def GATRes(net_params):
+    return GATResNet(net_params)
 
 def GraphSage(net_params):
     return GraphSageNet(net_params)
@@ -44,6 +54,8 @@ def ThreeWLGNN(net_params):
 def gnn_model(MODEL_NAME, net_params):
     models = {
         'GatedGCN': GatedGCN,
+        'GATRes' : GATRes,
+        'ChebyGIN': ChebyGIN,
         'GCN': GCN,
         'GAT': GAT,
         'GraphSage': GraphSage,

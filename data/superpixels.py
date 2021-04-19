@@ -3,7 +3,6 @@ import pickle
 from scipy.spatial.distance import cdist
 import numpy as np
 import itertools
-
 import dgl
 import torch
 import torch.utils.data
@@ -118,7 +117,7 @@ class SuperPixDGL(torch.utils.data.Dataset):
                 self.labels, self.sp_data = zip(*tmp)
 
             for index, sample in enumerate(self.sp_data):
-                mean_px, coord = sample[:2]
+                mean_px, coord, _, image = sample[:4]
 
             #                 print("this is mean_px", mean_px)
             #                 print("this is coord", coord)
@@ -139,9 +138,9 @@ class SuperPixDGL(torch.utils.data.Dataset):
 
     def _prepare(self):
         print("preparing %d graphs for the %s set..." % (self.n_samples, self.split.upper()))
-        self.Adj_matrices, self.node_features, self.edges_lists, self.edge_features = [], [], [], []
+        self.Adj_matrices, self.node_features, self.edges_lists, self.edge_features, self.images = [], [], [], [], []
         for index, sample in enumerate(self.sp_data):
-            mean_px, coord = sample[:2]
+            mean_px, coord, _, image = sample[:4]
 
             try:
                 coord = coord / self.img_size
@@ -166,6 +165,7 @@ class SuperPixDGL(torch.utils.data.Dataset):
             self.edge_features.append(edge_values_list) # NEW
             self.Adj_matrices.append(A)
             self.edges_lists.append(edges_list)
+            self.images.append(image)
 
         for index in range(len(self.sp_data)):
             g = dgl.DGLGraph()
@@ -204,7 +204,7 @@ class SuperPixDGL(torch.utils.data.Dataset):
                 DGLGraph with node feature stored in `feat` field
                 And its label.
         """
-        return self.graph_lists[idx], self.graph_labels[idx]
+        return self.graph_lists[idx], self.graph_labels[idx], self.images[idx]
 
 
 class DGLFormDataset(torch.utils.data.Dataset):
@@ -217,6 +217,7 @@ class DGLFormDataset(torch.utils.data.Dataset):
         self.lists = lists
         self.graph_lists = lists[0]
         self.graph_labels = lists[1]
+        self.images = lists[2]
 
     def __getitem__(self, index):
         return tuple(li[index] for li in self.lists)
@@ -319,7 +320,6 @@ class SuperPixDatasetDGL(torch.utils.data.Dataset):
             pickle.dump(temp_test, filehandle)
 
 
-
         self.test = SuperPixDGL("C:/Users/rezav/PycharmProjects/benchmarking-gnns/data/superpixels", dataset=self.name, split='test',
                                 use_mean_px=use_mean_px,
                                 use_coord=use_coord)
@@ -327,12 +327,14 @@ class SuperPixDatasetDGL(torch.utils.data.Dataset):
         self.train_ = SuperPixDGL("C:/Users/rezav/PycharmProjects/benchmarking-gnns/data/superpixels", dataset=self.name, split='train',
                                   use_mean_px=use_mean_px,
                                   use_coord=use_coord)
+        
+ 
 
-        _val_graphs, _val_labels = self.train_[:num_val]
-        _train_graphs, _train_labels = self.train_[num_val:]
+        _val_graphs, _val_labels, _val_imgs = self.train_[:num_val]
+        _train_graphs, _train_labels, _train_imgs  = self.train_[num_val:]
 
-        self.val = DGLFormDataset(_val_graphs, _val_labels)
-        self.train = DGLFormDataset(_train_graphs, _train_labels)
+        self.val = DGLFormDataset(_val_graphs, _val_labels, _val_imgs)
+        self.train = DGLFormDataset(_train_graphs, _train_labels, _train_imgs)
 
         print("[I] Data load time: {:.4f}s".format(time.time()-t_data))
 
@@ -386,9 +388,12 @@ class SuperPixDataset(torch.utils.data.Dataset):
 
     # form a mini batch from a given list of samples = [(graph, label) pairs]
     def collate(self, samples):
+            
         # The input samples is a list of pairs (graph, label).
-        graphs, labels = map(list, zip(*samples))
+        graphs, labels, images = map(list, zip(*samples))
         labels = torch.tensor(np.array(labels))
+        img_t = images#image_transforms(images)
+
         #tab_sizes_n = [ graphs[i].number_of_nodes() for i in range(len(graphs))]
         #tab_snorm_n = [ torch.FloatTensor(size,1).fill_(1./float(size)) for size in tab_sizes_n ]
         #snorm_n = torch.cat(tab_snorm_n).sqrt()
@@ -400,7 +405,7 @@ class SuperPixDataset(torch.utils.data.Dataset):
             graphs[idx].edata['feat'] = graph.edata['feat'].float()
         batched_graph = dgl.batch(graphs)
 
-        return batched_graph, labels
+        return batched_graph, labels, img_t
 
 
     # prepare dense tensors for GNNs using them; such as RingGNN, 3WLGNN

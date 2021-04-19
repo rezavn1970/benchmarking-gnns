@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from layers.attention_pooling_layer import *
+from layers.ChebyGIN_layer import *
 from layers.utils import *
 import dgl
 from dgl.nn.pytorch.glob import SumPooling, AvgPooling, MaxPooling
@@ -13,28 +14,30 @@ from dgl.nn.pytorch.glob import SumPooling, AvgPooling, MaxPooling
 
 from layers.gin_layer import GINLayer, ApplyNodeFunc, MLP
 
-class ChebyGIN(nn.Module):
+class ChebyGINNet(nn.Module):
     '''
     Graph Neural Network class.
     '''
-    def __init__(self,
-                 in_features,
-                 out_features,
-                 filters,
-                 K=1,
-                 n_hidden=0,
-                 aggregation='mean',
-                 dropout=0,
-                 readout='max',
-                 pool=None,  # Example: 'attn_gt_threshold_0_skip_skip'.split('_'),
-                 pool_arch='fc_prev'.split('_'),
-                 large_graph=False,  # > ~500 graphs
-                 kl_weight=None,
-                 graph_layer_fn=None,
-                 init='normal',
-                 scale=None,
-                 debug=False):
-        super(ChebyGIN, self).__init__()
+    def __init__(self,net_params):
+        super().__init__()
+        in_features = net_params['in_features']
+        out_features = net_params['out_features']
+        filters = net_params['filters']
+        dropout = net_params['dropout']
+        K = net_params['k']
+        n_hidden = net_params['n_hidden']
+        aggregation = net_params['aggregation']
+        readout = net_params['readout']
+        pool = None  # Example: 'attn_gt_threshold_0_skip_skip'.split('_'),
+        pool_arch = 'fc_prev'.split('_'),
+        large_graph = False  # > ~500 graphs
+        kl_weight = None
+        graph_layer_fn = None
+        init = 'normal'
+        scale = None
+        debug = False
+
+
         self.out_features = out_features
         assert len(filters) > 0, 'filters must be an iterable object with at least one element'
         assert K > 0, 'filter scale must be a positive integer'
@@ -52,12 +55,7 @@ class ChebyGIN(nn.Module):
                                                                aggregation=aggregation,
                                                                activation=activation)
             if self.pool_arch is not None and self.pool_arch[0] == 'gnn':
-                attn_gnn = lambda n_in: ChebyGIN(in_features=n_in,
-                                                 out_features=0,
-                                                 filters=[32, 32, 1],
-                                                 K=np.min((K, 2)),
-                                                 n_hidden=0,
-                                                 graph_layer_fn=graph_layer_fn)
+                attn_gnn = lambda n_in: ChebyGINNet(net_params)
 
         graph_layers = []
 

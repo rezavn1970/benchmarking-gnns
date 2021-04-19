@@ -5,7 +5,7 @@
 import torch
 import torch.nn as nn
 import math
-
+import numpy as np
 
 from train.metrics import accuracy_MNIST_CIFAR as accuracy
 
@@ -20,13 +20,17 @@ def train_epoch_sparse(model, optimizer, device, data_loader, epoch):
     epoch_train_acc = 0
     nb_data = 0
     gpu_mem = 0
-    for iter, (batch_graphs, batch_labels) in enumerate(data_loader):
+    for iter, (batch_graphs, batch_labels, batch_images) in enumerate(data_loader):
+
         batch_x = batch_graphs.ndata['feat'].to(device)  # num x feat
         batch_e = batch_graphs.edata['feat'].to(device)
         batch_labels = batch_labels.to(device)
         optimizer.zero_grad()
         
-        batch_scores = model.forward(batch_graphs, batch_x, batch_e)
+        #batch_scores = model.forward(batch_graphs, batch_x, batch_e)
+        # for ganres:
+        batch_scores = model.forward(batch_graphs, batch_x, batch_e, batch_images)        
+        
         loss = model.loss(batch_scores, batch_labels)
         loss.backward()
         optimizer.step()
@@ -45,13 +49,16 @@ def evaluate_network_sparse(model, device, data_loader, epoch):
     epoch_test_acc = 0
     nb_data = 0
     with torch.no_grad():
-        for iter, (batch_graphs, batch_labels) in enumerate(data_loader):
+        for iter, (batch_graphs, batch_labels, batch_images) in enumerate(data_loader):
+            
             batch_x = batch_graphs.ndata['feat'].to(device)
             batch_e = batch_graphs.edata['feat'].to(device)
             batch_labels = batch_labels.to(device)
             
-            batch_scores = model.forward(batch_graphs, batch_x, batch_e)
-            
+            #batch_scores = model.forward(batch_graphs, batch_x, batch_e)
+            # for ganres:
+            batch_scores = model.forward(batch_graphs, batch_x, batch_e, batch_images)
+
 #             batch_score_max = batch_scores.detach().argmax(dim=1)
 #             print ("batch score",batch_score_max)
 #             print ("batch labels", batch_labels)

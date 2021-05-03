@@ -8,6 +8,7 @@ from nets.superpixels_graph_classification.gcn_net import GCNNet
 from nets.superpixels_graph_classification.gat_net import GATNet
 from nets.superpixels_graph_classification.gat_resnet_net import GATResNet
 from nets.superpixels_graph_classification.gatgin_net import GATGINNet
+from nets.superpixels_graph_classification.resnet_net import ResNet
 
 from nets.superpixels_graph_classification.graphsage_net import GraphSageNet
 from nets.superpixels_graph_classification.gin_net import GINNet
@@ -32,6 +33,9 @@ def GAT(net_params):
 
 def GATRes(net_params):
     return GATResNet(net_params)
+
+def Res(net_params):
+    return ResNet(net_params)
 
 def GATGIN(net_params):
     return GATGINNet(net_params)
@@ -59,6 +63,7 @@ def gnn_model(MODEL_NAME, net_params):
     models = {
         'GatedGCN': GatedGCN,
         'GATRes': GATRes,
+        'Res': Res,
         'GATGIN': GATGIN,
         'ChebyGIN': ChebyGIN,
         'GCN': GCN,

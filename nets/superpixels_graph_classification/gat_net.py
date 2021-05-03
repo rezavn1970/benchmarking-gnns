@@ -37,7 +37,7 @@ class GATNet(nn.Module):
         self.layers.append(GATLayer(hidden_dim * num_heads, out_dim, 1, dropout, self.batch_norm, self.residual))
         self.MLP_layer = MLPReadout(out_dim, n_classes)
         
-    def forward(self, g, h, e):
+    def forward(self, g, h, e, img):
         h = self.embedding_h(h)
         h = self.in_feat_dropout(h)
         for conv in self.layers:

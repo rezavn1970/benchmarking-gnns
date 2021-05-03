@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+import numpy as np
 import dgl
 from dgl.nn.pytorch.glob import SumPooling, AvgPooling, MaxPooling
 
@@ -56,7 +56,7 @@ class GINNet(nn.Module):
         else:
             raise NotImplementedError
         
-    def forward(self, g, h, e):
+    def forward(self, g, h, e, img):
         
         h = self.embedding_h(h)
         
@@ -73,6 +73,8 @@ class GINNet(nn.Module):
         for i, h in enumerate(hidden_rep):
             pooled_h = self.pool(g, h)
             score_over_layer += self.linears_prediction[i](pooled_h)
+        print("reza is here")
+        print(np.shape(score_over_layer))
 
         return score_over_layer
         

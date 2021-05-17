@@ -79,7 +79,7 @@ class GATGINNet(nn.Module):
                                               dropout, self.batch_norm, self.residual) for _ in range(n_layers - 1)])
         self.layers.append(GATLayer(hidden_dim_gat * num_heads, out_dim_gat, 1, dropout, self.batch_norm, self.residual))
         self.MLP_layer = MLPReadout(out_dim_gat, out_dim_gat)
-        self.classifier = nn.Linear(162, n_classes)
+        self.classifier = nn.Linear(83, n_classes)
 
     def forward(self, g, h, e, img):
         h_gat = self.embedding_h_gat(h)
